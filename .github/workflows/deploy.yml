@@ -53,6 +53,7 @@ jobs:
           DEPLOY_SCRIPT=$(cat << SCRIPT | base64 -w 0
           #!/bin/bash
           set -e
+          export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
           DEPLOY_DIR=/opt/factufacil-chatbot
           mkdir -p \$DEPLOY_DIR
 
