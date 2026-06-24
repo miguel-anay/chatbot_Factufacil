@@ -89,7 +89,8 @@ Each unit above is independently mergeable, has a clear verification step (smoke
 - [ ] 6.1 `entrypoints/api/schemas.py`: add `AgentChatRequest`/`AgentChatResponse`, `ConfirmationPayload` (additive, no changes to existing schemas)
 - [ ] 6.2 `entrypoints/api/agent_router.py`: `POST /agent/chat`, `POST /agent/confirm`, `GET /agent/session/{id}` per HTTP contract in design.md
 - [ ] 6.3 `entrypoints/api/main.py`: `include_router(agent_router)`, compile graph once in existing lifespan — verify zero changes to `/chat` route registration
-- [ ] 6.4 Update `requirements.txt`: declare `langgraph>=1.2.0,<2.0.0`, `langchain-core>=1.4.0,<2.0.0`, `langchain-openai>=1.2.0,<2.0.0`, `httpx>=0.28.0,<0.29.0`
+  - [ ] 6.3a MANDATORY: wrap graph compilation in `try/except` inside `lifespan()`, AFTER the existing `chatbot = ChatbotService(...)` line. On exception: set `app.state.agent_graph = None` + `app.state.agent_error = str(exc)`, log, do NOT re-raise — `yield` must always execute. See design.md "Lifespan failure isolation" decision. Verify manually: force a bad tool schema, confirm `/chat` and `/health` still respond, `/agent/chat` returns 503.
+- [ ] 6.4 Update `requirements.txt`: declare `langgraph`, `langchain-core`, `langchain-openai`, `httpx` pinned to the EXACT versions verified in the Phase 0 smoke test (`==`, not ranges) — see design.md "New-dependency pinning" decision
 
 ## Phase 7: Integration Tests / Verification
 

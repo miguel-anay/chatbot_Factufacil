@@ -15,6 +15,8 @@ Additive layer over the proven hexagonal scaffold. A LangGraph supervisor routes
 | Multi-domain requests | No direct edges between specialists; no auto-chaining in v1 | Auto Compras→Logística chain | Chaining auto-writes multiplies blast radius of one human confirmation. Specialist suggests next step as a fresh user turn. Deferred "plan mode". |
 | Port sync/async split | 8 new ports async; 3 existing ports stay sync | Convert all to async | New ports do real remote I/O; existing path has no regression need. Intentional scoped split. |
 | Routing | `context_module` fast-path (no LLM) + `.with_structured_output()` fallback over a `Literal` of 5 modules | LLM-always routing | Frontend already knows the module; skip a call when hinted. |
+| Lifespan failure isolation | Agent graph compilation wrapped in `try/except` inside the EXISTING `lifespan()` in `main.py`, after the existing `chatbot = ChatbotService(...)` line. On failure: `app.state.agent_graph = None`, `app.state.agent_error = str(exc)`, log, do NOT re-raise. `agent_router.py` endpoints check `app.state.agent_graph is None` → `503`. `/health` surfaces `agent_error` | Letting graph compilation exceptions propagate out of `lifespan()` | `lifespan()` is a single shared FastAPI startup hook — an uncaught exception anywhere in it fails `yield` and takes down the WHOLE app, including the unrelated existing `/chat` path. Hexagonal isolation is code-level, not process-level; this is the actual mechanism that prevents a broken new agent from killing a working old endpoint. MANDATORY for the PR that touches `main.py` (entrypoint wiring phase) — not optional polish. |
+| New-dependency pinning | `langgraph`, `langchain-core`, `langchain-openai`, `httpx` pinned to the EXACT versions proven in the Phase 0 smoke test (`==`, not `>=`/ranges) when added to `requirements.txt` | Loose ranges (`>=X,<Y`) | A range lets `pip` resolve a version never tested, which can break `docker build` or install incompatible transitive deps — discovered only at deploy time without a CI build gate. Exact pin removes that variable; existing loose ranges (`langchain-core>=0.2.0` etc.) are a pre-existing latent version of this same risk, not introduced by this change. |
 
 ## Data Flow
 
@@ -40,7 +42,7 @@ Specialists never edge to each other; all paths terminate at `END`.
 | `core/orchestration/{state,supervisor,graph,confirmation}.py` | Create | AgentState, routing, StateGraph, `require_confirmation()` |
 | `adapters/facturadorpro7_api/{http_client,auth, 8 adapters}.py` | Create | Single auth-aware client; per-request instantiation |
 | `entrypoints/api/agent_router.py` | Create | `/agent/chat`, `/agent/confirm`, `/agent/session/{id}` |
-| `entrypoints/api/main.py`, `schemas.py` | Modify | `include_router` + compile graph in existing lifespan; +schemas |
+| `entrypoints/api/main.py`, `schemas.py` | Modify | `include_router` + compile graph in existing `lifespan()` WRAPPED IN try/except (see Lifespan failure isolation decision — failure must not block `yield`/take down `/chat`); +schemas |
 | `requirements.txt` | Modify | Declare langgraph/langchain-core/-openai/httpx |
 | `/chat`, `chatbot_service.py`, FAISS/memory adapters, 3 sync ports | NOT modified | Zero regression |
 
@@ -96,6 +98,8 @@ HTTP: `/agent/chat` → `{session_id, status: answered|awaiting_confirmation, an
 ## Migration / Rollout
 
 Purely additive. Rollback = remove `include_router` in `main.py`; new folders deletable with no impact. Before real users: migrate `InMemorySaver` → `langgraph-checkpoint-sqlite`/`-postgres` (pending confirmation lost on restart otherwise).
+
+**CI gate (implemented, applies to every PR in this chain, not just this change)**: `deploy.yml` now has a `test` job (`docker build` → boot container → poll `/health` up to 90s, first boot loads the embedding model and takes ~50s → run `test_chatbot.py`) that `deploy` depends on via `needs: test`. A broken build or a regression on `/chat` blocks the SSM deploy automatically — this is what actually prevents production breakage; hexagonal/SDD reduce blast radius and ambiguity but don't execute code. Requires a GitHub Actions repo secret `ALIBABA_API_KEY` (separate from the existing AWS SSM parameter used at deploy time) for the regression-test step to get real LLM responses — not yet provisioned, pending user action (`gh secret set ALIBABA_API_KEY`).
 
 ## Open Questions
 

@@ -14,7 +14,53 @@ permissions:
   packages: write
 
 jobs:
+  test:
+    name: Build, boot smoke-test & regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t factufacil-chatbot:ci .
+
+      - name: Boot container and wait for /health
+        run: |
+          docker run -d --name ci-app -p 8000:8000 \
+            -e ALIBABA_API_KEY="${{ secrets.ALIBABA_API_KEY }}" \
+            factufacil-chatbot:ci
+
+          # Primer arranque carga el modelo de embeddings (~30-50s) antes de levantar.
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health > /dev/null; then
+              echo "App levantó OK"
+              exit 0
+            fi
+            echo "[$i/30] esperando arranque..."
+            sleep 3
+          done
+
+          echo "El container no levantó — logs:"
+          docker logs ci-app
+          exit 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run functional regression tests
+        run: |
+          pip install --no-cache-dir requests
+          python test_chatbot.py
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f ci-app || true
+
   deploy:
+    needs: test
     name: Build, push & deploy
     runs-on: ubuntu-latest
     timeout-minutes: 15
