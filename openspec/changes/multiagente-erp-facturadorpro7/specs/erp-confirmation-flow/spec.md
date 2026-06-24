@@ -8,7 +8,18 @@ Propose-then-confirm contract for ERP writes classified as irreversible, SUNAT-f
 
 ### Requirement: Irreversible Writes Require Confirmation
 
-A write tool MUST call `require_confirmation(tool_name, tool_args, summary)` as the first statement of its function body, before issuing the real POST, WHEN the tool is classified as irreversible. A tool is irreversible if it satisfies at least one of: (a) it is SUNAT-facing (generates or sends a fiscal/electronic document), (b) it changes real stock quantities, (c) it is the only POST step for that operation (no separate draft step exists). The irreversible set is: `crear_producto`, `actualizar_producto`, `activar_o_desactivar_producto`, `marcar_favorito`, `registrar_movimiento_stock`, `crear_compra`, `confirmar_y_generar_cpe`, `enviar_guia_sunat`, `crear_retencion`, `crear_percepcion`, `abrir_caja`, `cerrar_caja`.
+A write tool MUST call `interrupt()` as the first statement of its function body, before issuing the real POST, WHEN the tool is classified as irreversible in actual business consequence. A tool is irreversible if it satisfies at least one of: (a) it is SUNAT-facing (generates or sends a fiscal/electronic document), (b) it changes real stock quantities, (c) it is a financial/document-creation POST with no separate draft step AND no trivial undo path (calling the tool again with corrected data does not cleanly reverse it). The irreversible set is: `registrar_movimiento_stock`, `crear_compra`, `confirmar_y_generar_cpe`, `enviar_guia_sunat`, `crear_retencion`, `crear_percepcion`, `abrir_caja`, `cerrar_caja`.
+
+### Requirement: Catalog Metadata Writes Bypass Confirmation
+
+A write tool MUST execute its POST immediately, without calling `interrupt()`, WHEN it only mutates product catalog metadata that carries no SUNAT/financial/stock consequence and is trivially correctable by invoking the same tool again with different arguments. This is a distinct category from "draft" writes (Requirement below) — these tools have no later confirmation step at all, ever, because the operation itself never warrants pausing for human approval. The catalog-metadata set is: `crear_producto`, `actualizar_producto`, `activar_o_desactivar_producto`, `marcar_favorito`.
+
+#### Scenario: Product creation does not pause
+
+- GIVEN the Inventario specialist invokes `crear_producto` with valid arguments
+- WHEN the tool function executes
+- THEN the POST to `/api/item` completes immediately
+- AND no `awaiting_confirmation` state is produced for this call
 
 #### Scenario: Tool execution pauses before the POST
 
