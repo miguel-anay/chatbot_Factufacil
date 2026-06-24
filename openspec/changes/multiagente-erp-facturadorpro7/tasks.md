@@ -70,15 +70,17 @@ A direct read of the FacturadorPro7 Laravel source (not just live trial-and-erro
 
 ## Phase 3: Tools (Pydantic schemas, explicit — not docstring-inferred)
 
-- [ ] 3.1 `core/agents/tools/items_tools.py`: `buscar_producto`, `crear_producto` (shared Compras+Ventas subset)
-- [ ] 3.2 `core/agents/tools/inventory_tools.py`: `obtener_producto`, `actualizar_producto`, `activar_o_desactivar_producto`, `marcar_favorito`, `listar_categorias`, `listar_marcas`, `registrar_movimiento_stock` (interrupt)
-- [ ] 3.3 `core/agents/tools/customers_tools.py`: `buscar_cliente`
-- [ ] 3.4 `core/agents/tools/suppliers_tools.py`: `buscar_proveedor`
-- [ ] 3.5 `core/agents/tools/sales_tools.py`: `crear_preliminar_venta` (no interrupt), `confirmar_y_generar_cpe` (interrupt)
-- [ ] 3.6 `core/agents/tools/purchases_tools.py`: `crear_compra` (interrupt)
-- [ ] 3.7 `core/agents/tools/dispatch_tools.py`: `obtener_tablas_despacho`, `crear_guia_remision` (no interrupt), `enviar_guia_sunat` (interrupt), `listar_guias_remision`
-- [ ] 3.8 `core/agents/tools/finance_tools.py`: `crear_retencion`, `crear_percepcion`, `abrir_caja`, `cerrar_caja` (all interrupt), `reporte_del_dia`, `reporte_general_ventas`
-- [ ] 3.9 Verify every tool receives `TenantCredentials` via `config.configurable`/`InjectedToolArg`/`get_config()` — never as a normal parameter; confirm no token/base_url field appears in any tool's serialized JSON schema
+- [x] 3.1 `core/agents/tools/items_tools.py`: `buscar_producto`, `crear_producto` (shared Compras+Ventas subset) — 19/19 checks
+- [x] 3.2 `core/agents/tools/inventory_tools.py`: `obtener_producto`, `actualizar_producto`, `activar_o_desactivar_producto`, `marcar_favorito`, `listar_categorias`, `listar_marcas`, `registrar_movimiento_stock` (interrupt) — 52/52 checks
+- [x] 3.3 `core/agents/tools/customers_tools.py`: `buscar_cliente` — 9/9 checks
+- [x] 3.4 `core/agents/tools/suppliers_tools.py`: `buscar_proveedor` — 9/9 checks
+- [x] 3.5 `core/agents/tools/sales_tools.py`: `crear_preliminar_venta` (no interrupt), `confirmar_y_generar_cpe` (interrupt) — 26/26 checks. DECISION: `crear_preliminar_venta` computes the IGV/total breakdown itself (`_shared.compute_igv_breakdown`, IGV Perú 18%, `unitValue = unitPrice/1.18` for afectación "10") before calling `SalesPort.create_sale_note` — the bare API never computes `total` server-side (Phase 2 finding). Lives in tools layer, not adapter (adapter doesn't know "line items" as a concept) nor agent (deterministic arithmetic, no LLM judgment needed).
+- [x] 3.6 `core/agents/tools/purchases_tools.py`: `crear_compra` (interrupt) — 13/13 checks
+- [x] 3.7 `core/agents/tools/dispatch_tools.py`: `obtener_tablas_despacho`, `crear_guia_remision` (no interrupt), `enviar_guia_sunat` (interrupt), `listar_guias_remision` — 33/33 checks
+- [x] 3.8 `core/agents/tools/finance_tools.py`: `crear_retencion`, `crear_percepcion`, `abrir_caja`, `cerrar_caja` (all interrupt), `reporte_del_dia`, `reporte_general_ventas` — 52/52 checks
+- [x] 3.9 Verify every tool receives `TenantCredentials` via `config.configurable`/`InjectedToolArg`/`get_config()` — never as a normal parameter; confirmed no token/base_url field appears in any tool's serialized JSON schema via an automated `check_no_credential_leak_in_schema()` in every verify script (not just asserted — actually inspects `tool.tool_call_schema.model_json_schema()`)
+
+Total Phase 3: 213/213 checks passed across 8 verify scripts (run with `PYTHONPATH=. venv/bin/python3 scripts/verify_phase3_*.py`).
 
 ## Phase 4: Specialist Agents (build order: Inventario → Ventas → Compras → Logística → Contabilidad)
 
