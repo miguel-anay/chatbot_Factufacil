@@ -3,6 +3,16 @@ name: Deploy to Pro7Tiendas
 on:
   push:
     branches: [main]
+    # Solo documentación → NO deployar al EC2. Si un push toca ÚNICAMENTE
+    # archivos de estas rutas, el workflow entero (test + deploy) se saltea.
+    # Un push que mezcle docs + código sí corre (gana el archivo de código).
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'openspec/**'
+      - '**.html'
+      - '**.pdf'
+      - 'LICENSE'
 
 concurrency:
   group: deploy-${{ github.ref }}
