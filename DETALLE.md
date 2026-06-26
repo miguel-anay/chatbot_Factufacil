@@ -201,7 +201,7 @@ cp .env.example .env
 # Editar .env → agregar ALIBABA_API_KEY o OPENAI_API_KEY
 
 # 5. Iniciar servidor
-python main.py
+python run.py
 # El índice FAISS se construye automáticamente en el primer arranque (~30 s)
 ```
 

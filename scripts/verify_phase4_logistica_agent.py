@@ -7,7 +7,7 @@ import asyncio
 import sys
 from unittest.mock import AsyncMock, patch
 
-from core.agents.logistica_agent import build_logistica_agent
+from core.application.agents.logistica_agent import build_logistica_agent
 
 PASS = []
 FAIL = []
@@ -47,7 +47,7 @@ def check_live_llm_invokes_expected_tool():
         "configurable": {"creds": TenantCredentials(base_url="https://fake.test", token="fake-token")}
     }
 
-    with patch("core.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
         from core.domain import DispatchTables
 
         instance = MockAdapter.return_value

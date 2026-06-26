@@ -21,7 +21,7 @@ from langgraph.types import Command
 from typing_extensions import TypedDict
 
 from adapters.facturadorpro7_api.auth import TenantCredentials
-from core.agents.tools.sales_tools import SALES_TOOLS, confirmar_y_generar_cpe, crear_preliminar_venta
+from core.application.agents.tools.sales_tools import SALES_TOOLS, confirmar_y_generar_cpe, crear_preliminar_venta
 from core.domain import Cpe, SaleNote
 
 PASS = []
@@ -55,7 +55,7 @@ def check_crear_preliminar_venta_computes_igv_for_affectation_10():
         captured["draft"] = draft
         return SaleNote(id=1, customer_id=draft["customer_id"], total=draft["total"])
 
-    with patch("core.agents.tools.sales_tools.SalesAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.sales_tools.SalesAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.create_sale_note = AsyncMock(side_effect=fake_create_sale_note)
         result = asyncio.run(
@@ -86,7 +86,7 @@ def check_crear_preliminar_venta_no_igv_for_affectation_20():
         captured["draft"] = draft
         return SaleNote(id=2, customer_id=draft["customer_id"], total=draft["total"])
 
-    with patch("core.agents.tools.sales_tools.SalesAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.sales_tools.SalesAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.create_sale_note = AsyncMock(side_effect=fake_create_sale_note)
         asyncio.run(
@@ -115,7 +115,7 @@ def check_crear_preliminar_venta_multi_line_aggregates():
         captured["draft"] = draft
         return SaleNote(id=3, customer_id=draft["customer_id"], total=draft["total"])
 
-    with patch("core.agents.tools.sales_tools.SalesAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.sales_tools.SalesAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.create_sale_note = AsyncMock(side_effect=fake_create_sale_note)
         asyncio.run(
@@ -170,7 +170,7 @@ def check_confirmar_y_generar_cpe_decline_path():
     app = _build_cpe_graph()
     cfg = {"configurable": {"thread_id": "t-cpe-2", **FAKE_CONFIG["configurable"]}}
     asyncio.run(app.ainvoke({"result": ""}, config=cfg))
-    with patch("core.agents.tools.sales_tools.SalesAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.sales_tools.SalesAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.generate_cpe = AsyncMock()
         resumed = asyncio.run(app.ainvoke(Command(resume={"approved": False}), config=cfg))
@@ -183,7 +183,7 @@ def check_confirmar_y_generar_cpe_approve_path():
     cfg = {"configurable": {"thread_id": "t-cpe-3", **FAKE_CONFIG["configurable"]}}
     asyncio.run(app.ainvoke({"result": ""}, config=cfg))
     fake_cpe = Cpe(id=1, sale_note_id=42, document_type_id="03", series="B001", number="42", sunat_status="ACEPTADO")
-    with patch("core.agents.tools.sales_tools.SalesAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.sales_tools.SalesAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.generate_cpe = AsyncMock(return_value=fake_cpe)
         resumed = asyncio.run(app.ainvoke(Command(resume={"approved": True}), config=cfg))

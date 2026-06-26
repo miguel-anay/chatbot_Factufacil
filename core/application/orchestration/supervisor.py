@@ -28,8 +28,8 @@ from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from core.agents.base import build_llm_client
-from core.orchestration.state import AgentState, SpecialistModule
+from core.application.agents.base import build_llm_client
+from core.application.orchestration.state import AgentState, SpecialistModule
 
 VALID_MODULES = {"inventario", "compras", "ventas", "logistica", "contabilidad"}
 

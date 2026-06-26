@@ -1,7 +1,8 @@
 """
-Servicio de dominio — lógica de negocio pura.
-No importa LangChain, FAISS, FastAPI ni ninguna librería de infraestructura.
-Solo habla con los puertos definidos en ports.py.
+Servicio de APLICACIÓN (caso de uso) del chatbot de preventa.
+Orquesta los puertos del dominio (LLM, RAG, memoria) para resolver un turno
+de conversación. No importa LangChain, FAISS, FastAPI ni ninguna librería de
+infraestructura — solo habla con los puertos definidos en core/ports.py.
 """
 import uuid
 from typing import Optional

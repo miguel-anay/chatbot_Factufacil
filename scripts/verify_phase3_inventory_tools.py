@@ -22,7 +22,7 @@ from langgraph.types import Command
 from typing_extensions import TypedDict
 
 from adapters.facturadorpro7_api.auth import TenantCredentials
-from core.agents.tools.inventory_tools import (
+from core.application.agents.tools.inventory_tools import (
     INVENTORY_TOOLS,
     activar_o_desactivar_producto,
     actualizar_producto,
@@ -58,7 +58,7 @@ def check_no_credential_leak_in_schema():
 
 def check_obtener_producto_happy_path():
     fake_item = Item(id=5, description="MESA", price=100.0)
-    with patch("core.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.get_item = AsyncMock(return_value=fake_item)
         result = asyncio.run(obtener_producto.ainvoke({"id": 5}, config=FAKE_CONFIG))
@@ -68,7 +68,7 @@ def check_obtener_producto_happy_path():
 
 def check_actualizar_producto_happy_path():
     fake_item = Item(id=5, description="MESA NUEVA", price=120.0)
-    with patch("core.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.update_item = AsyncMock(return_value=fake_item)
         result = asyncio.run(
@@ -79,7 +79,7 @@ def check_actualizar_producto_happy_path():
 
 
 def check_activar_desactivar_producto():
-    with patch("core.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.change_active = AsyncMock(return_value=None)
         result = asyncio.run(activar_o_desactivar_producto.ainvoke({"id": 7, "active": False}, config=FAKE_CONFIG))
@@ -88,7 +88,7 @@ def check_activar_desactivar_producto():
 
 
 def check_marcar_favorito():
-    with patch("core.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.change_favorite = AsyncMock(return_value=None)
         result = asyncio.run(marcar_favorito.ainvoke({"id": 7, "favorite": True}, config=FAKE_CONFIG))
@@ -96,7 +96,7 @@ def check_marcar_favorito():
 
 
 def check_listar_categorias():
-    with patch("core.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.list_categories = AsyncMock(return_value=[Category(id=1, name="Ropa")])
         result = asyncio.run(listar_categorias.ainvoke({}, config=FAKE_CONFIG))
@@ -104,7 +104,7 @@ def check_listar_categorias():
 
 
 def check_listar_marcas():
-    with patch("core.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.list_brands = AsyncMock(return_value=[Brand(id=2, name="Nike")])
         result = asyncio.run(listar_marcas.ainvoke({}, config=FAKE_CONFIG))
@@ -112,7 +112,7 @@ def check_listar_marcas():
 
 
 def check_listar_categorias_empty():
-    with patch("core.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.list_categories = AsyncMock(return_value=[])
         result = asyncio.run(listar_categorias.ainvoke({}, config=FAKE_CONFIG))
@@ -162,7 +162,7 @@ def check_registrar_movimiento_stock_decline_path_no_adapter_call():
     app = _build_stock_graph()
     cfg = {"configurable": {"thread_id": "t-stock-2", **FAKE_CONFIG["configurable"]}}
     asyncio.run(app.ainvoke({"result": ""}, config=cfg))
-    with patch("core.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.register_transaction = AsyncMock()
         resumed = asyncio.run(app.ainvoke(Command(resume={"approved": False}), config=cfg))
@@ -175,7 +175,7 @@ def check_registrar_movimiento_stock_approve_path_calls_adapter():
     cfg = {"configurable": {"thread_id": "t-stock-3", **FAKE_CONFIG["configurable"]}}
     asyncio.run(app.ainvoke({"result": ""}, config=cfg))
     fake_movement = StockMovement(id=1, item_code="SKU-1", type="input", warehouse_id=1, quantity=5, resulting_stock=20)
-    with patch("core.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.register_transaction = AsyncMock(return_value=fake_movement)
         resumed = asyncio.run(app.ainvoke(Command(resume={"approved": True}), config=cfg))

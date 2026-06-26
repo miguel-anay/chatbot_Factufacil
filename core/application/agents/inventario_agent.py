@@ -10,13 +10,13 @@ listar_categorias, listar_marcas, registrar_movimiento_stock).
 """
 from __future__ import annotations
 
-from core.agents.base import SpecialistAgent
-from core.agents.tools.inventory_tools import INVENTORY_TOOLS
-from core.agents.tools.items_tools import ITEMS_TOOLS
+from core.application.agents.base import SpecialistAgent
+from core.application.agents.tools.inventory_tools import INVENTORY_TOOLS
+from core.application.agents.tools.items_tools import ITEMS_TOOLS
 
 SYSTEM_PROMPT = """\
 Sos el agente especialista en Inventario/Producto del co-piloto ERP de \
-FactuFácil, integrado dentro de FacturadorPro7.
+FactuFácil.
 
 Tu misión es ayudar al usuario a buscar, crear y mantener el catálogo de \
 productos, y a registrar movimientos de stock.

@@ -7,12 +7,11 @@ listar_guias_remision).
 """
 from __future__ import annotations
 
-from core.agents.base import SpecialistAgent
-from core.agents.tools.dispatch_tools import DISPATCH_TOOLS
+from core.application.agents.base import SpecialistAgent
+from core.application.agents.tools.dispatch_tools import DISPATCH_TOOLS
 
 SYSTEM_PROMPT = """\
-Sos el agente especialista en Logística del co-piloto ERP de FactuFácil, \
-integrado dentro de FacturadorPro7.
+Sos el agente especialista en Logística del co-piloto ERP de FactuFácil.
 
 Tu misión es ayudar al usuario a armar y enviar guías de remisión \
 (despacho) para el traslado de mercadería.

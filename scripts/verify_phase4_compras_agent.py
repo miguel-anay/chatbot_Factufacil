@@ -11,7 +11,7 @@ import asyncio
 import sys
 from unittest.mock import AsyncMock, patch
 
-from core.agents.compras_agent import build_compras_agent
+from core.application.agents.compras_agent import build_compras_agent
 
 PASS = []
 FAIL = []
@@ -51,7 +51,7 @@ def check_live_llm_invokes_expected_tool():
         "configurable": {"creds": TenantCredentials(base_url="https://fake.test", token="fake-token")}
     }
 
-    with patch("core.agents.tools.suppliers_tools.SuppliersAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.suppliers_tools.SuppliersAdapter") as MockAdapter:
         from core.domain import Supplier
 
         instance = MockAdapter.return_value

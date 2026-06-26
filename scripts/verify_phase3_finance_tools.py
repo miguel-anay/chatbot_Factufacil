@@ -19,7 +19,7 @@ from langgraph.types import Command
 from typing_extensions import TypedDict
 
 from adapters.facturadorpro7_api.auth import TenantCredentials
-from core.agents.tools.finance_tools import (
+from core.application.agents.tools.finance_tools import (
     FINANCE_TOOLS,
     abrir_caja,
     cerrar_caja,
@@ -104,7 +104,7 @@ def check_crear_retencion_pauses_decline_approve():
 
     cfg2 = {"configurable": {"thread_id": "t-retencion-2", **FAKE_CONFIG["configurable"]}}
     asyncio.run(app.ainvoke({"result": ""}, config=cfg2))
-    with patch("core.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.create_retention = AsyncMock()
         declined = asyncio.run(app.ainvoke(Command(resume={"approved": False}), config=cfg2))
@@ -121,7 +121,7 @@ def check_crear_retencion_pauses_decline_approve():
         captured["supplier_identity"] = supplier_identity
         return Retention(id=1, amount=100.0)
 
-    with patch("core.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.create_retention = AsyncMock(side_effect=fake_create_retention)
         approved = asyncio.run(app.ainvoke(Command(resume={"approved": True}), config=cfg3))
@@ -174,7 +174,7 @@ def check_crear_percepcion_pauses_decline_approve():
         captured["customer_identity"] = customer_identity
         return Perception(id=2, amount=50.0)
 
-    with patch("core.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.create_perception = AsyncMock(side_effect=fake_create_perception)
         approved = asyncio.run(app.ainvoke(Command(resume={"approved": True}), config=cfg2))
@@ -201,7 +201,7 @@ def check_abrir_caja_pauses_decline_approve():
 
     cfg2 = {"configurable": {"thread_id": "t-caja-2", **FAKE_CONFIG["configurable"]}}
     asyncio.run(app.ainvoke({"result": ""}, config=cfg2))
-    with patch("core.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.open_cash = AsyncMock(return_value=Cash(id=9, state=True, beginning_balance=200.0))
         approved = asyncio.run(app.ainvoke(Command(resume={"approved": True}), config=cfg2))
@@ -220,7 +220,7 @@ def check_cerrar_caja_pauses_decline_approve():
 
     cfg2 = {"configurable": {"thread_id": "t-cierre-2", **FAKE_CONFIG["configurable"]}}
     asyncio.run(app.ainvoke({"result": ""}, config=cfg2))
-    with patch("core.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.close_cash = AsyncMock(return_value=Cash(id=9, state=False, beginning_balance=0.0))
         approved = asyncio.run(app.ainvoke(Command(resume={"approved": True}), config=cfg2))
@@ -232,7 +232,7 @@ def check_cerrar_caja_pauses_decline_approve():
 
 
 def check_reporte_del_dia():
-    with patch("core.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.get_daily_report = AsyncMock(return_value=Report(data={"total": 32572.64}))
         result = asyncio.run(reporte_del_dia.ainvoke({"filters": {}}, config=FAKE_CONFIG))
@@ -240,7 +240,7 @@ def check_reporte_del_dia():
 
 
 def check_reporte_general_ventas():
-    with patch("core.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.finance_tools.FinanceAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.get_general_sale_report = AsyncMock(return_value=Report(data={"total": 1000.0}))
         result = asyncio.run(

@@ -12,7 +12,7 @@ sandbox que `/api/sale-note` NO computa `total` (ni los totales agregados)
 server-side — es un gap genuino del lado del servidor, no del adapter. Se
 decidió que ESTA CAPA (tools, no el adapter ni el agente) calcula el
 desglose de IGV/total ANTES de llamar al port, vía
-`core.agents.tools._shared.compute_igv_breakdown()` (mismo patrón
+`core.application.agents.tools._shared.compute_igv_breakdown()` (mismo patrón
 `unitValue = unitPrice / 1.18` para afectación "10", documentado en el
 proyecto hermano). Razón de poner el cálculo aquí y no en el adapter: el
 adapter no conoce "líneas de venta" como concepto (solo recibe un dict
@@ -33,7 +33,7 @@ from langgraph.types import interrupt
 from pydantic import BaseModel, Field
 
 from adapters.facturadorpro7_api.sales_adapter import SalesAdapter
-from core.agents.tools._shared import InjectedConfig, build_client, compute_igv_breakdown
+from core.application.agents.tools._shared import InjectedConfig, build_client, compute_igv_breakdown
 
 
 class LineaVentaInput(BaseModel):

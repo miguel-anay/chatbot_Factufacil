@@ -20,7 +20,7 @@ from langgraph.types import Command
 from typing_extensions import TypedDict
 
 from adapters.facturadorpro7_api.auth import TenantCredentials
-from core.agents.tools.purchases_tools import PURCHASES_TOOLS, crear_compra
+from core.application.agents.tools.purchases_tools import PURCHASES_TOOLS, crear_compra
 from core.domain import Purchase
 
 PASS = []
@@ -94,7 +94,7 @@ def check_crear_compra_decline_path_no_adapter_call():
     app = _build_purchase_graph()
     cfg = {"configurable": {"thread_id": "t-purchase-2", **FAKE_CONFIG["configurable"]}}
     asyncio.run(app.ainvoke({"result": ""}, config=cfg))
-    with patch("core.agents.tools.purchases_tools.PurchasesAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.purchases_tools.PurchasesAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.create_purchase = AsyncMock()
         resumed = asyncio.run(app.ainvoke(Command(resume={"approved": False}), config=cfg))
@@ -117,7 +117,7 @@ def check_crear_compra_approve_path_forwards_item_snapshots():
             items=draft["items"], total=draft["total"],
         )
 
-    with patch("core.agents.tools.purchases_tools.PurchasesAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.purchases_tools.PurchasesAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.create_purchase = AsyncMock(side_effect=fake_create_purchase)
         resumed = asyncio.run(app.ainvoke(Command(resume={"approved": True}), config=cfg))

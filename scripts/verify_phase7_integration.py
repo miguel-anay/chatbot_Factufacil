@@ -112,7 +112,7 @@ async def _check_routing_all_modules(client: httpx.AsyncClient):
 
     for module in modules:
         with patch(
-            "core.agents.base.SpecialistAgent.ainvoke",
+            "core.application.agents.base.SpecialistAgent.ainvoke",
             new=AsyncMock(return_value=[{"role": "assistant", "content": f"respuesta simulada de {module}"}]),
         ):
             session_id = f"routing-test-{module}-{uuid.uuid4()}"
@@ -148,7 +148,7 @@ async def _check_routing_no_hint_fallback(client: httpx.AsyncClient):
     session_id = f"routing-fallback-{uuid.uuid4()}"
 
     with patch(
-        "core.agents.base.SpecialistAgent.ainvoke",
+        "core.application.agents.base.SpecialistAgent.ainvoke",
         new=AsyncMock(return_value=[{"role": "assistant", "content": "respuesta simulada"}]),
     ):
         resp = await client.post(
@@ -185,8 +185,8 @@ async def _check_draft_full_cycle(client: httpx.AsyncClient):
 
     from core.domain import SaleNote
 
-    with patch("core.agents.tools.sales_tools.SalesAdapter") as MockAdapter, patch(
-        "core.agents.tools.sales_tools.build_client"
+    with patch("core.application.agents.tools.sales_tools.SalesAdapter") as MockAdapter, patch(
+        "core.application.agents.tools.sales_tools.build_client"
     ) as mock_build_client:
         instance = MockAdapter.return_value
         instance.create_sale_note = AsyncMock(

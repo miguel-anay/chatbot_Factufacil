@@ -4,7 +4,7 @@ Router del co-piloto ERP multiagente — `POST /agent/chat`, `POST
 contract; spec `erp-agent-api`).
 
 NO reimplementa el parsing de `__interrupt__`/`Command(resume=...)` — usa
-`core.orchestration.confirmation.parse_interrupt_payload()`/
+`core.application.orchestration.confirmation.parse_interrupt_payload()`/
 `build_resume_command()` (ya construidos en PR6), que son la fuente única de
 verdad para esa traducción.
 
@@ -22,7 +22,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, HTTPException, Request
 
 from adapters.facturadorpro7_api.auth import TenantCredentials
-from core.orchestration.confirmation import build_resume_command, parse_interrupt_payload
+from core.application.orchestration.confirmation import build_resume_command, parse_interrupt_payload
 from entrypoints.api.schemas import (
     AgentChatRequest,
     AgentChatResponse,

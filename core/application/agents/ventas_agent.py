@@ -7,14 +7,13 @@ compartido con Compras/Inventario), `customers_tools` (buscar_cliente) y
 """
 from __future__ import annotations
 
-from core.agents.base import SpecialistAgent
-from core.agents.tools.customers_tools import CUSTOMERS_TOOLS
-from core.agents.tools.items_tools import ITEMS_TOOLS
-from core.agents.tools.sales_tools import SALES_TOOLS
+from core.application.agents.base import SpecialistAgent
+from core.application.agents.tools.customers_tools import CUSTOMERS_TOOLS
+from core.application.agents.tools.items_tools import ITEMS_TOOLS
+from core.application.agents.tools.sales_tools import SALES_TOOLS
 
 SYSTEM_PROMPT = """\
-Sos el agente especialista en Ventas del co-piloto ERP de FactuFácil, \
-integrado dentro de FacturadorPro7.
+Sos el agente especialista en Ventas del co-piloto ERP de FactuFácil.
 
 Tu misión es ayudar al usuario a registrar ventas: buscar o crear \
 productos, identificar al cliente, armar el preliminar de venta y, si el \

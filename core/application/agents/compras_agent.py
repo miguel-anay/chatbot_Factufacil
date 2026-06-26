@@ -8,14 +8,13 @@ comparte entre dos agentes, design.md "ItemsPort sharing"), `suppliers_tools`
 """
 from __future__ import annotations
 
-from core.agents.base import SpecialistAgent
-from core.agents.tools.items_tools import ITEMS_TOOLS
-from core.agents.tools.purchases_tools import PURCHASES_TOOLS
-from core.agents.tools.suppliers_tools import SUPPLIERS_TOOLS
+from core.application.agents.base import SpecialistAgent
+from core.application.agents.tools.items_tools import ITEMS_TOOLS
+from core.application.agents.tools.purchases_tools import PURCHASES_TOOLS
+from core.application.agents.tools.suppliers_tools import SUPPLIERS_TOOLS
 
 SYSTEM_PROMPT = """\
-Sos el agente especialista en Compras del co-piloto ERP de FactuFácil, \
-integrado dentro de FacturadorPro7.
+Sos el agente especialista en Compras del co-piloto ERP de FactuFácil.
 
 Tu misión es ayudar al usuario a registrar compras a proveedores: buscar o \
 crear productos, identificar al proveedor y registrar la compra con sus \

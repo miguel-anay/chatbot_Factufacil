@@ -13,9 +13,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from adapters.llm.openai_compatible import OpenAICompatibleAdapter
 from adapters.memory.window_memory_adapter import WindowMemoryAdapter
 from adapters.rag.faiss_adapter import FAISSAdapter
-from core.chatbot_service import ChatbotService
+from core.application.presales_service import ChatbotService
 from core.domain import BotPersona
-from core.orchestration.graph import build_graph
+from core.application.orchestration.graph import build_graph
 from entrypoints.api import agent_router
 from entrypoints.api.schemas import ChatRequest, ChatResponse
 from infrastructure.config import Config

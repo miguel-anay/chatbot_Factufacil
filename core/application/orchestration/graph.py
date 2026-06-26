@@ -32,13 +32,13 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from core.agents.compras_agent import build_compras_agent
-from core.agents.contabilidad_agent import build_contabilidad_agent
-from core.agents.inventario_agent import build_inventario_agent
-from core.agents.logistica_agent import build_logistica_agent
-from core.agents.ventas_agent import build_ventas_agent
-from core.orchestration.state import AgentState
-from core.orchestration.supervisor import supervisor_node
+from core.application.agents.compras_agent import build_compras_agent
+from core.application.agents.contabilidad_agent import build_contabilidad_agent
+from core.application.agents.inventario_agent import build_inventario_agent
+from core.application.agents.logistica_agent import build_logistica_agent
+from core.application.agents.ventas_agent import build_ventas_agent
+from core.application.orchestration.state import AgentState
+from core.application.orchestration.supervisor import supervisor_node
 
 SUPERVISOR_NODE = "supervisor"
 

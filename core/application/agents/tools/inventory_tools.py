@@ -21,7 +21,7 @@ from langgraph.types import interrupt
 from pydantic import BaseModel, Field
 
 from adapters.facturadorpro7_api.inventory_adapter import InventoryAdapter
-from core.agents.tools._shared import InjectedConfig, build_client
+from core.application.agents.tools._shared import InjectedConfig, build_client
 from core.domain import StockTxn
 
 

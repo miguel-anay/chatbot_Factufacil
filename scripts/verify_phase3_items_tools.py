@@ -9,7 +9,7 @@ import sys
 from unittest.mock import AsyncMock, patch
 
 from adapters.facturadorpro7_api.auth import TenantCredentials
-from core.agents.tools.items_tools import ITEMS_TOOLS, buscar_producto, crear_producto
+from core.application.agents.tools.items_tools import ITEMS_TOOLS, buscar_producto, crear_producto
 from core.domain import Item
 
 PASS = []
@@ -45,7 +45,7 @@ def check_buscar_producto_schema_validation():
 
 def check_buscar_producto_happy_path():
     fake_items = [Item(id=1, description="ZAPATO", price=50.0, barcode="123", stock=10)]
-    with patch("core.agents.tools.items_tools.ItemsAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.items_tools.ItemsAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.search = AsyncMock(return_value=fake_items)
         result = asyncio.run(
@@ -56,7 +56,7 @@ def check_buscar_producto_happy_path():
 
 
 def check_buscar_producto_empty_result():
-    with patch("core.agents.tools.items_tools.ItemsAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.items_tools.ItemsAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.search = AsyncMock(return_value=[])
         result = asyncio.run(buscar_producto.ainvoke({"query": "nada", "by_barcode": False, "page": 1}, config=FAKE_CONFIG))
@@ -65,7 +65,7 @@ def check_buscar_producto_empty_result():
 
 def check_crear_producto_happy_path():
     fake_item = Item(id=99, description="NUEVO", price=10.0)
-    with patch("core.agents.tools.items_tools.ItemsAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.items_tools.ItemsAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.create = AsyncMock(return_value=fake_item)
         result = asyncio.run(
@@ -93,7 +93,7 @@ def check_crear_producto_passes_itemdraft_fields():
         captured["draft"] = draft
         return Item(id=1, description=draft.description, price=draft.price)
 
-    with patch("core.agents.tools.items_tools.ItemsAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.items_tools.ItemsAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.create = AsyncMock(side_effect=fake_create)
         asyncio.run(

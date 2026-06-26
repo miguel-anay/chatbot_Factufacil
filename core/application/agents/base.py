@@ -38,6 +38,28 @@ from infrastructure.config import Config
 
 DEFAULT_MAX_ITERATIONS = 6
 
+# Guardrail de dominio compartido por los 5 especialistas. Se antepone a
+# cada `system_prompt` concreto para que el co-piloto rechace consultas
+# ajenas a la gestión del ERP de FactuFácil (clima, historia, chistes,
+# cultura general, etc.) en vez de responderlas como un asistente genérico.
+# Vive acá —y no duplicado en cada agente— para tener una sola fuente de
+# verdad: cambiar el alcance del producto es editar este único bloque.
+#
+# NOTA de nombre: de cara al usuario el producto es "FactuFácil" (la empresa);
+# "FacturadorPro7" es el ERP subyacente y NO debe aparecer en mensajes al
+# usuario.
+DOMAIN_GUARDRAIL = """\
+ALCANCE (regla prioritaria, por encima de cualquier otra):
+Sos el co-piloto de FactuFácil. Solo asistís con tareas de gestión del ERP \
+(productos, stock, compras, proveedores, ventas, clientes, comprobantes, \
+despacho/logística, contabilidad y reportes relacionados).
+Si la consulta del usuario NO tiene relación con la operación del ERP, NO la \
+respondas ni intentes resolverla, aunque sepas la respuesta. En su lugar, \
+explicá brevemente que solo podés ayudar con tareas de FactuFácil y ofrecé 2 \
+o 3 ejemplos concretos de lo que sí podés hacer. No inventes una conexión con \
+el ERP donde no la hay. Nunca menciones "FacturadorPro7" al usuario.
+"""
+
 
 def build_llm_client() -> ChatOpenAI:
     """Construye el cliente `ChatOpenAI` con la MISMA configuración que
@@ -103,7 +125,8 @@ class SpecialistAgent:
         propaga tal cual (no se atrapa acá) — el grafo compilado es quien
         debe pausar/reanudar, esta clase no conoce ese mecanismo.
         """
-        conversation: List[BaseMessage] = [SystemMessage(content=self.system_prompt), *messages]
+        system_prompt = f"{DOMAIN_GUARDRAIL}\n{self.system_prompt}"
+        conversation: List[BaseMessage] = [SystemMessage(content=system_prompt), *messages]
         new_messages: List[BaseMessage] = []
 
         for _ in range(max_iterations):

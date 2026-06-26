@@ -19,7 +19,7 @@ from langgraph.types import Command
 from typing_extensions import TypedDict
 
 from adapters.facturadorpro7_api.auth import TenantCredentials
-from core.agents.tools.dispatch_tools import (
+from core.application.agents.tools.dispatch_tools import (
     DISPATCH_TOOLS,
     crear_guia_remision,
     enviar_guia_sunat,
@@ -52,7 +52,7 @@ def check_no_credential_leak_in_schema():
 
 def check_obtener_tablas_despacho():
     fake_tables = DispatchTables(transfer_reasons=[{"id": 1, "name": "Venta"}], transport_modes=[{"id": "01", "name": "Publico"}])
-    with patch("core.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.get_tables = AsyncMock(return_value=fake_tables)
         result = asyncio.run(obtener_tablas_despacho.ainvoke({}, config=FAKE_CONFIG))
@@ -64,7 +64,7 @@ def check_crear_guia_remision_not_interrupt_gated():
     """Draft step — calling it directly (no graph context) must NOT raise
     KeyError('__pregel_scratchpad'), proving it does not call interrupt()."""
     fake_dispatch = Dispatch(id=10, origin_address="Av. Origen 123", delivery_address="Av. Destino 456")
-    with patch("core.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.create_dispatch = AsyncMock(return_value=fake_dispatch)
         result = asyncio.run(
@@ -90,7 +90,7 @@ def check_crear_guia_remision_not_interrupt_gated():
 
 def check_listar_guias_remision():
     fake_dispatches = [Dispatch(id=1, origin_address="A", delivery_address="B", state="06")]
-    with patch("core.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.list_dispatches = AsyncMock(return_value=fake_dispatches)
         result = asyncio.run(listar_guias_remision.ainvoke({"filters": {}}, config=FAKE_CONFIG))
@@ -98,7 +98,7 @@ def check_listar_guias_remision():
 
 
 def check_listar_guias_remision_empty():
-    with patch("core.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.list_dispatches = AsyncMock(return_value=[])
         result = asyncio.run(listar_guias_remision.ainvoke({"filters": {}}, config=FAKE_CONFIG))
@@ -135,7 +135,7 @@ def check_enviar_guia_sunat_decline_path():
     app = _build_send_graph()
     cfg = {"configurable": {"thread_id": "t-dispatch-2", **FAKE_CONFIG["configurable"]}}
     asyncio.run(app.ainvoke({"result": ""}, config=cfg))
-    with patch("core.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.send_dispatch = AsyncMock()
         resumed = asyncio.run(app.ainvoke(Command(resume={"approved": False}), config=cfg))
@@ -148,7 +148,7 @@ def check_enviar_guia_sunat_approve_path():
     cfg = {"configurable": {"thread_id": "t-dispatch-3", **FAKE_CONFIG["configurable"]}}
     asyncio.run(app.ainvoke({"result": ""}, config=cfg))
     fake_dispatch = Dispatch(id=10, origin_address="A", delivery_address="B", state="07", sunat_status="ACEPTADO")
-    with patch("core.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.dispatch_tools.DispatchAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.send_dispatch = AsyncMock(return_value=fake_dispatch)
         resumed = asyncio.run(app.ainvoke(Command(resume={"approved": True}), config=cfg))

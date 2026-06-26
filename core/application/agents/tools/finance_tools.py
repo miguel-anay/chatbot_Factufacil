@@ -33,7 +33,7 @@ from langgraph.types import interrupt
 from pydantic import BaseModel, Field
 
 from adapters.facturadorpro7_api.finance_adapter import FinanceAdapter
-from core.agents.tools._shared import InjectedConfig, build_client
+from core.application.agents.tools._shared import InjectedConfig, build_client
 
 
 class PersonIdentityInput(BaseModel):

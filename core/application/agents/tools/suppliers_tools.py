@@ -10,7 +10,7 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from adapters.facturadorpro7_api.suppliers_adapter import SuppliersAdapter
-from core.agents.tools._shared import InjectedConfig, build_client
+from core.application.agents.tools._shared import InjectedConfig, build_client
 
 
 class BuscarProveedorInput(BaseModel):

@@ -14,7 +14,7 @@ import asyncio
 import sys
 from unittest.mock import AsyncMock, patch
 
-from core.agents.inventario_agent import build_inventario_agent
+from core.application.agents.inventario_agent import build_inventario_agent
 
 PASS = []
 FAIL = []
@@ -66,7 +66,7 @@ def check_live_llm_invokes_expected_tool():
         "configurable": {"creds": TenantCredentials(base_url="https://fake.test", token="fake-token")}
     }
 
-    with patch("core.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.inventory_tools.InventoryAdapter") as MockAdapter:
         from core.domain import Item
 
         instance = MockAdapter.return_value

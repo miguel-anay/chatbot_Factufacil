@@ -16,8 +16,20 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from adapters.facturadorpro7_api.items_adapter import ItemsAdapter
-from core.agents.tools._shared import InjectedConfig, build_client
+from core.application.agents.tools._shared import InjectedConfig, build_client
 from core.domain import ItemDraft
+
+# Tope de productos que `buscar_producto` vuelca al contexto del LLM por
+# llamada. La búsqueda del ERP ya filtra server-side (`items_adapter.search`),
+# pero una query amplia (ej. "p") puede devolver decenas de filas — y CADA fila
+# es texto que entra al contexto del modelo y se paga en tokens en esta y en
+# las siguientes iteraciones del loop. Capear acá ataca el costo de tokens sin
+# tocar la búsqueda en sí: se muestran los primeros N y se le avisa al LLM (y al
+# usuario) que hay más, sugiriendo afinar o paginar. Si más adelante se agrega
+# el canal de `ui_actions` (ver docs/plan-control-ui-erp.md), las búsquedas de
+# navegación dejarán de volcar filas por completo; este tope es la mejora barata
+# e inmediata mientras tanto.
+MAX_SEARCH_RESULTS = 8
 
 
 class BuscarProductoInput(BaseModel):
@@ -42,10 +54,18 @@ async def buscar_producto(query: str, by_barcode: bool, page: int, config: Injec
         await client.aclose()
     if not items:
         return f"No se encontraron productos para '{query}'."
+    shown = items[:MAX_SEARCH_RESULTS]
     lines = [
         f"- id={i.id} | {i.description} | precio={i.price} | barcode={i.barcode or 'N/A'} | stock={i.stock}"
-        for i in items
+        for i in shown
     ]
+    extra = len(items) - len(shown)
+    if extra > 0:
+        lines.append(
+            f"… y {extra} resultado(s) más en esta página (mostrando los primeros "
+            f"{MAX_SEARCH_RESULTS}). Pedile al usuario que afine la búsqueda, o "
+            f"traé la página siguiente con page={page + 1}."
+        )
     return "\n".join(lines)
 
 

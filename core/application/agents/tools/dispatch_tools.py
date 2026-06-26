@@ -33,7 +33,7 @@ from langgraph.types import interrupt
 from pydantic import BaseModel, Field
 
 from adapters.facturadorpro7_api.dispatch_adapter import DispatchAdapter
-from core.agents.tools._shared import InjectedConfig, build_client
+from core.application.agents.tools._shared import InjectedConfig, build_client
 
 
 class ObtenerTablasDespachoInput(BaseModel):

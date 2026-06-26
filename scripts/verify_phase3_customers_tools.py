@@ -9,7 +9,7 @@ import sys
 from unittest.mock import AsyncMock, patch
 
 from adapters.facturadorpro7_api.auth import TenantCredentials
-from core.agents.tools.customers_tools import CUSTOMERS_TOOLS, buscar_cliente
+from core.application.agents.tools.customers_tools import CUSTOMERS_TOOLS, buscar_cliente
 from core.domain import Customer
 
 PASS = []
@@ -36,7 +36,7 @@ def check_no_credential_leak_in_schema():
 
 def check_buscar_cliente_happy_path():
     fake_customers = [Customer(id=1, document_number="12345678", name="JUAN PEREZ")]
-    with patch("core.agents.tools.customers_tools.CustomersAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.customers_tools.CustomersAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.search = AsyncMock(return_value=fake_customers)
         result = asyncio.run(buscar_cliente.ainvoke({"query": "juan"}, config=FAKE_CONFIG))
@@ -45,7 +45,7 @@ def check_buscar_cliente_happy_path():
 
 
 def check_buscar_cliente_empty_result():
-    with patch("core.agents.tools.customers_tools.CustomersAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.customers_tools.CustomersAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.search = AsyncMock(return_value=[])
         result = asyncio.run(buscar_cliente.ainvoke({"query": "nadie"}, config=FAKE_CONFIG))

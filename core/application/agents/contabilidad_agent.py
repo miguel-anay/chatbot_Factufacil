@@ -7,12 +7,12 @@ reporte_del_dia, reporte_general_ventas).
 """
 from __future__ import annotations
 
-from core.agents.base import SpecialistAgent
-from core.agents.tools.finance_tools import FINANCE_TOOLS
+from core.application.agents.base import SpecialistAgent
+from core.application.agents.tools.finance_tools import FINANCE_TOOLS
 
 SYSTEM_PROMPT = """\
 Sos el agente especialista en Contabilidad/Finanzas del co-piloto ERP de \
-FactuFácil, integrado dentro de FacturadorPro7.
+FactuFácil.
 
 Tu misión es ayudar al usuario con retenciones, percepciones, apertura y \
 cierre de caja, y reportes de ventas/caja.

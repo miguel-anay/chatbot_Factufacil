@@ -38,8 +38,8 @@ from unittest.mock import AsyncMock, patch
 from langchain_core.messages import HumanMessage
 
 from adapters.facturadorpro7_api.auth import TenantCredentials
-from core.orchestration.confirmation import build_resume_command, parse_interrupt_payload
-from core.orchestration.graph import SPECIALIST_BUILDERS, build_graph
+from core.application.orchestration.confirmation import build_resume_command, parse_interrupt_payload
+from core.application.orchestration.graph import SPECIALIST_BUILDERS, build_graph
 
 PASS = []
 FAIL = []
@@ -103,7 +103,7 @@ async def _check_routing_fast_path():
     for module in SPECIALIST_BUILDERS:
         fake_response_messages = [HumanMessage(content=f"respuesta simulada de {module}")]
         with patch(
-            "core.agents.base.SpecialistAgent.ainvoke",
+            "core.application.agents.base.SpecialistAgent.ainvoke",
             new=AsyncMock(return_value=fake_response_messages),
         ):
             thread_id = f"routing-test-{module}-{uuid.uuid4()}"
@@ -131,7 +131,7 @@ async def _check_live_llm_fallback_classification():
 
     fake_response_messages = [HumanMessage(content="respuesta simulada")]
     with patch(
-        "core.agents.base.SpecialistAgent.ainvoke",
+        "core.application.agents.base.SpecialistAgent.ainvoke",
         new=AsyncMock(return_value=fake_response_messages),
     ):
         try:
@@ -177,8 +177,8 @@ async def _check_real_interrupt_resume_through_compiled_graph():
 
     from core.domain import Cpe
 
-    with patch("core.agents.tools.sales_tools.SalesAdapter") as MockAdapter, patch(
-        "core.agents.tools.sales_tools.build_client"
+    with patch("core.application.agents.tools.sales_tools.SalesAdapter") as MockAdapter, patch(
+        "core.application.agents.tools.sales_tools.build_client"
     ) as mock_build_client:
         instance = MockAdapter.return_value
         instance.generate_cpe = AsyncMock(

@@ -9,7 +9,7 @@ import sys
 from unittest.mock import AsyncMock, patch
 
 from adapters.facturadorpro7_api.auth import TenantCredentials
-from core.agents.tools.suppliers_tools import SUPPLIERS_TOOLS, buscar_proveedor
+from core.application.agents.tools.suppliers_tools import SUPPLIERS_TOOLS, buscar_proveedor
 from core.domain import Supplier
 
 PASS = []
@@ -36,7 +36,7 @@ def check_no_credential_leak_in_schema():
 
 def check_buscar_proveedor_happy_path():
     fake_suppliers = [Supplier(id=64, document_number="20123456789", name="ABHER S.A.C.")]
-    with patch("core.agents.tools.suppliers_tools.SuppliersAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.suppliers_tools.SuppliersAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.search = AsyncMock(return_value=fake_suppliers)
         result = asyncio.run(buscar_proveedor.ainvoke({"query": "abher"}, config=FAKE_CONFIG))
@@ -45,7 +45,7 @@ def check_buscar_proveedor_happy_path():
 
 
 def check_buscar_proveedor_empty_result():
-    with patch("core.agents.tools.suppliers_tools.SuppliersAdapter") as MockAdapter:
+    with patch("core.application.agents.tools.suppliers_tools.SuppliersAdapter") as MockAdapter:
         instance = MockAdapter.return_value
         instance.search = AsyncMock(return_value=[])
         result = asyncio.run(buscar_proveedor.ainvoke({"query": "nadie"}, config=FAKE_CONFIG))
