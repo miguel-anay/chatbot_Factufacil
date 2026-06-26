@@ -1,200 +1,244 @@
-# Chatbot FactuFácil — LLM + RAG con LangChain
+# Co-piloto ERP FactuFácil — multiagente con LangGraph
 
-**Diploma AI Engineer — Diseño e Implementación de Chatbots**  
-Proyecto Final · Módulo: Diseño e Implementación de Chatbots
+**Asistente conversacional embebido en el ERP [FacturadorPro7](https://factufacil.pe)**, construido con **LangGraph** (orquestación multiagente) sobre **arquitectura hexagonal**. Un supervisor enruta cada consulta al especialista correcto (ventas, compras, inventario, contabilidad, logística), y toda escritura pasa por **confirmación humana** antes de tocar el ERP.
 
----
+> 🚀 **¿Recién llegás al repo?** Empezá por **[ONBOARDING.md](ONBOARDING.md)** —
+> setup, cómo correrlo, mapa del código y cómo trabajamos (ramas, PRs, roadmap).
 
-## 1. Objetivo de la Evaluación
-
-Desarrollar un agente conversacional inteligente aplicando **LLM** (Large Language Models) y **RAG** (Retrieval-Augmented Generation) para demostrar integración funcional entre recuperación de información, generación de respuestas naturales y manejo de alucinaciones.
-
-**Aplicación:** asistente virtual para [FactuFácil](https://factufacil.pe), sistema de facturación electrónica peruano. Responde 24/7 consultas sobre planes, precios, funcionalidades e integración con SUNAT, manteniendo contexto conversacional entre turnos.
+> 🎓 **Origen académico:** este proyecto nació como el trabajo final del diploma
+> *Diseño e Implementación de Chatbots* (un chatbot LLM + RAG de preventa). Ese
+> entregable sigue vivo como uno de los dos canales — ver [sección 9](#9-origen-académico--chatbot-de-preventa-rag).
 
 ---
 
-## 2. Características del Producto Tecnológico
+## 1. Visión
 
-- Chatbot inteligente basado en **LLM + RAG** sobre base de conocimiento de FactuFácil.
-- Responde consultas usando **13 documentos estructurados** con información real del sitio.
-- Orquestación de intenciones y entidades con **LangChain** (no Rasa — el LLM entiende el lenguaje de forma nativa).
-- Integración de LLM via **Alibaba DashScope (Qwen3)** con fallback a OpenAI — misma interfaz `ChatOpenAI`.
-- **Embeddings multilingüe** locales (`paraphrase-multilingual-MiniLM-L12-v2`), vectorización con `RecursiveCharacterTextSplitter`, indexación y búsqueda semántica con **FAISS**.
-- FAISS opera localmente en lugar de OpenSearch — misma calidad de búsqueda semántica, sin dependencias de servidor para el entorno académico.
-- **Manejo de alucinaciones**: el prompt ancla cada respuesta al contexto recuperado; si no hay suficiente contexto, el modelo deriva a `ventas@factufacil.pe` en lugar de inventar.
+FacturadorPro7 es un ERP de facturación electrónica peruano. El operador pasa el
+día entre módulos (inventario, compras, ventas, guías de remisión, contabilidad)
+ejecutando tareas repetitivas. La idea de este proyecto es ponerle al lado un
+**co-piloto conversacional** que entienda en qué módulo está parado, resuelva
+consultas y prepare acciones — **sin reemplazar el criterio humano en las
+escrituras**.
 
----
+Dos canales, un mismo proceso FastAPI:
 
-## 3. Requisitos Técnicos
+| Canal | Para qué | Entrada HTTP | Núcleo |
+|-------|----------|--------------|--------|
+| **Co-piloto ERP** (foco actual) | Asiste dentro del ERP: ventas, compras, inventario, contabilidad, logística. Multiagente con LangGraph. | `POST /agent/chat`, `POST /agent/confirm` | `core/application/orchestration/` + `core/application/agents/` |
+| **Chatbot de preventa (RAG)** | Responde 24/7 sobre planes, precios, SUNAT, etc. usando RAG sobre la base de conocimiento. Es el entregable académico original. | `POST /chat` | `core/application/presales_service.py` |
 
-| Requisito | Implementación |
-|-----------|---------------|
-| Lenguaje Python | Python 3.10+ |
-| LangChain obligatorio | `langchain >= 0.2`, `langchain-community`, `langchain-openai` |
-| Motor de embeddings / vector database | FAISS local + `sentence-transformers` |
-| Código estructurado | Arquitectura hexagonal (v2.0): `core/`, `adapters/`, `infrastructure/`, `entrypoints/` |
-| README con instrucciones | Este documento |
-| Diagrama de arquitectura | Sección 5 |
+El co-piloto ERP es **aditivo**: si su grafo no compila al arrancar, `/agent/*`
+devuelve `503` y el chatbot de preventa sigue funcionando intacto.
 
 ---
 
-## 4. Desarrollo del Proyecto
-
-| Sesión | Objetivo | Entregable |
-|--------|----------|-----------|
-| **5** | Núcleo LLM + demo básica | `chatbot_service.py`, `main.py` — conversación funcional sin RAG |
-| **6** | Embeddings, indexación y búsqueda semántica | `rag_system.py` — FAISS + `sentence-transformers` integrado |
-| **7** | Chatbot completo con RAG | Integración final, tests, arquitectura hexagonal (v2.0) |
-
----
-
-## 5. Arquitectura del Sistema
-
-> 📐 Referencia completa de capas, reglas de dependencia y decisiones de diseño: **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)**.
+## 2. Cómo funciona el co-piloto (multiagente)
 
 ```
-Usuario
-  │
-  ▼
-FastAPI  (main.py / entrypoints/api/main.py — puerto 8000)
-  │
-  ▼
-ChatbotService  (core/chatbot_service.py)
-  │
-  ├──► RAGPort → FAISSAdapter  (adapters/rag/faiss_adapter.py)
-  │       ├── HuggingFace Embeddings
-  │       │     paraphrase-multilingual-MiniLM-L12-v2
-  │       ├── FAISS Vector Store  (data/faiss_index/)
-  │       └── RecursiveCharacterTextSplitter
-  │             chunk_size=500 / overlap=50
-  │
-  ├──► MemoryPort → WindowMemoryAdapter  (adapters/memory/)
-  │       ConversationBufferWindowMemory (k=8 turnos por sesión)
-  │
-  └──► LLMPort → OpenAICompatibleAdapter  (adapters/llm/)
-         Qwen3 via Alibaba DashScope (OpenAI-compatible)
-         o OpenAI directamente
+                          POST /agent/chat
+                                │
+                                ▼
+                      ┌──────────────────┐
+                      │    SUPERVISOR    │   decide active_specialist
+                      └──────────────────┘
+            ┌──────────┬──────────┼──────────┬───────────┐
+            ▼          ▼          ▼          ▼           ▼
+        inventario  compras    ventas    logistica  contabilidad
+            │          │          │          │           │
+            └──────────┴────── cada uno ──────┴───────────┘
+                                │
+                                ▼
+                               END
 ```
 
-**Flujo por mensaje:**
+- **Supervisor (routing).** Dos caminos en orden:
+  1. **Fast-path sin LLM** — si el frontend del ERP manda `context_module`
+     (sabe en qué pantalla está el usuario), se usa directo. Cero costo de
+     tokens.
+  2. **Fallback con un único LLM call** — clasifica el último mensaje con
+     `.with_structured_output()` sobre un `Literal` de los 5 módulos. Nunca
+     adivina ni hardcodea un default.
+- **5 especialistas.** `inventario`, `compras`, `ventas`, `logistica`,
+  `contabilidad`. Cada uno tiene sus `tools` que llaman a la API de
+  FacturadorPro7 (`adapters/facturadorpro7_api/`).
+- **Sin encadenamiento automático.** Cada especialista va **directo a `END`**;
+  no hay aristas entre especialistas. Un pedido multi-dominio se resuelve como
+  turnos separados — encadenar escrituras automáticas multiplicaría el *blast
+  radius* de una sola confirmación humana. Es una decisión de diseño, no un
+  olvido.
+
+---
+
+## 3. Confirmación humana — la línea roja
+
+Toda acción que **modifica** datos del ERP (crear una nota de venta, mover
+stock, registrar una compra…) está *interrupt-gated*:
 
 ```
-1. POST /chat  →  ChatbotService.chat()
-2. RAGPort.retrieve(query, k=4)       ← búsqueda semántica en FAISS
-3. Armar prompt:
-       [sistema] + [contexto RAG] + [historial] + [pregunta]
-4. LLMPort.generate(prompt)           ← Qwen3 / GPT genera respuesta
-5. MemoryPort.save_turn()             ← guardar turno en memoria de sesión
-6. Retornar: answer + sources + session_id
+POST /agent/chat   →  el especialista invoca un tool de escritura
+                   →  interrupt(): el grafo PAUSA
+                   →  responde { status: "awaiting_confirmation", confirmation: {...} }
+
+POST /agent/confirm { session_id, approved }
+                   →  reanuda DENTRO del mismo tool
+                   →  approved=true: ejecuta contra el ERP
+                      approved=false: cancela, no escribe nada
 ```
 
-### Estructura del proyecto
+Reglas no negociables:
+
+- **El agente nunca escribe solo.** Sin un `POST /agent/confirm` con
+  `approved=true`, no hay efecto en el ERP.
+- **El agente no toca la base de datos directamente** — entra siempre por
+  `ports` / `adapters`.
+- **Credenciales por request, nunca persistidas.** Cada `/agent/chat` trae
+  `tenant_base_url` + `tenant_token`; viven en memoria del proceso mientras hay
+  una confirmación pendiente y mueren con él. No van a `.env`, ni a disco, ni a
+  logs, ni al estado del checkpointer.
+- **LangGraph confinado.** Solo vive en `core/application/orchestration/`; no se
+  filtra al dominio ni a los entrypoints.
+
+---
+
+## 4. Arquitectura (hexagonal)
+
+> 📐 Referencia completa: **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)** ·
+> cómo conviven LangGraph y hexagonal:
+> **[docs/langgraph-y-arquitectura-hexagonal.md](docs/langgraph-y-arquitectura-hexagonal.md)**.
+
+La regla de oro: **las flechas de dependencia apuntan siempre hacia adentro**.
+El `core/` (dominio + aplicación) no conoce FAISS, ni LangGraph, ni la API del
+ERP. Eso vive en `adapters/`. Cambiar FAISS por OpenSearch, o Qwen por GPT, es un
+swap de una línea en el Composition Root.
 
 ```
 proyecto_final_factufacil/
 │
-├── core/                         ← DOMINIO (sin dependencias externas)
-│   ├── domain.py                   entidades: ChatMessage, ChatResponse, BotPersona
-│   ├── ports.py                    interfaces: LLMPort, RAGPort, MemoryPort
-│   └── chatbot_service.py          lógica de negocio pura
+├── core/                              ← DOMINIO + APLICACIÓN (sin infra)
+│   ├── domain.py                        entidades: ChatMessage, ChatResponse, BotPersona
+│   ├── ports.py                         interfaces: LLMPort, RAGPort, MemoryPort
+│   └── application/
+│       ├── presales_service.py          canal preventa — chatbot RAG
+│       ├── orchestration/               co-piloto ERP — grafo LangGraph
+│       │   ├── graph.py                   build_graph(): supervisor + 5 especialistas
+│       │   ├── supervisor.py              routing (fast-path + fallback LLM)
+│       │   ├── state.py                   AgentState que viaja entre nodos
+│       │   └── confirmation.py            interrupt() / resume para escrituras
+│       └── agents/                      especialistas + tools que llaman al ERP
+│           ├── ventas_agent.py · compras_agent.py · inventario_agent.py
+│           ├── contabilidad_agent.py · logistica_agent.py
+│           └── tools/                     items, inventory, sales, purchases, …
 │
-├── adapters/                     ← INFRAESTRUCTURA (implementan los puertos)
-│   ├── llm/openai_compatible.py    → LLMPort con Qwen3/GPT
-│   ├── rag/faiss_adapter.py        → RAGPort con FAISS
-│   └── memory/window_memory_adapter.py → MemoryPort en RAM
+├── adapters/                          ← INFRAESTRUCTURA (implementan los ports)
+│   ├── llm/openai_compatible.py         → LLMPort con Qwen3/GPT
+│   ├── rag/faiss_adapter.py             → RAGPort con FAISS
+│   ├── memory/window_memory_adapter.py  → MemoryPort en RAM (k=8 turnos)
+│   └── facturadorpro7_api/              → cliente HTTP + adapters del ERP
 │
-├── infrastructure/               ← CONFIGURACIÓN Y DATOS
-│   ├── config.py                   constantes y variables de entorno
-│   └── knowledge_base.py           13 documentos de FactuFácil
+├── infrastructure/                    ← CONFIGURACIÓN Y DATOS
+│   ├── config.py                        constantes y variables de entorno
+│   └── knowledge_base.py                13 documentos de FactuFácil (RAG preventa)
 │
-├── entrypoints/api/              ← ENTRADA HTTP
-│   ├── main.py                     Composition Root — ensambla adaptadores
-│   └── schemas.py                  modelos Pydantic de request/response
+├── entrypoints/api/                   ← ENTRADA HTTP (Composition Root)
+│   ├── main.py                          ensambla todo, expone /chat, /health, /rag/*
+│   ├── agent_router.py                  expone /agent/chat, /agent/confirm, /agent/session
+│   └── schemas.py                       modelos Pydantic request/response
 │
-├── main.py                       ← versión v1 (sin hexagonal)
-├── chatbot_service.py            ← versión v1
-├── rag_system.py                 ← versión v1
-├── knowledge_base.py             ← versión v1
-├── config.py                     ← versión v1
-├── test_chatbot.py               ← tests funcionales
-├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
-├── .env.example
-└── data/faiss_index/             ← generado automáticamente al iniciar
+├── docs/                              ← guías de arquitectura y planes de roadmap
+├── openspec/                          ← artefactos SDD (propuestas, specs, diseño, tareas)
+├── run.py · test_chatbot.py · requirements.txt · Dockerfile · docker-compose.yml
+└── data/faiss_index/                 ← generado automáticamente al iniciar
 ```
 
 ---
 
-## 6. Herramientas y Tecnologías Utilizadas
+## 5. Stack tecnológico
 
 | Tecnología | Versión | Rol |
 |-----------|---------|-----|
-| Python | 3.10+ | Lenguaje principal |
-| LangChain | >= 0.2 | Orquestación LLM + memoria |
-| FAISS | >= 1.7.4 | Vector store local |
+| Python | 3.10+ (venv en 3.12) | Lenguaje principal |
+| LangGraph | 1.2.0 | Orquestación multiagente (supervisor + especialistas) |
+| LangChain | core 1.4.0 · openai 1.2.1 | Clientes LLM, tool-calling, structured output |
+| FAISS | >= 1.7.4 | Vector store local (canal preventa) |
 | sentence-transformers | >= 2.3.1 | Embeddings multilingüe (sin API key) |
-| FastAPI | >= 0.110 | API REST |
-| Uvicorn | >= 0.27 | Servidor ASGI |
-| Qwen3 (DashScope) | — | LLM generativo principal |
-| OpenAI GPT | — | LLM alternativo |
+| FastAPI / Uvicorn | >= 0.110 / >= 0.27 | API REST |
+| httpx | 0.28.1 | Cliente HTTP hacia la API del ERP |
+| Qwen3 (DashScope) / OpenAI GPT | — | LLM generativo (OpenAI-compatible) |
 | Docker / docker-compose | — | Containerización |
+
+> Las dependencias del co-piloto van con **versión exacta** (no rangos) — ver el
+> comentario en `requirements.txt`: un rango deja que pip resuelva algo nunca
+> probado.
 
 ---
 
-## 7. Instalación y Ejecución
+## 6. Instalación y ejecución
 
 ### Requisitos previos
 
-- Python 3.10+
-- `ALIBABA_API_KEY` (Alibaba DashScope) o `OPENAI_API_KEY`
+- **Python 3.10+**
+- Una API key de LLM: `ALIBABA_API_KEY` (DashScope / Qwen3) **o** `OPENAI_API_KEY`
+- Para el co-piloto ERP: credenciales de un tenant FacturadorPro7
+  (`base_url` + `token`), que se pasan **por request**, no en `.env`.
 
-### Instalación local
+### Local
 
 ```bash
-# 1. Clonar / entrar al directorio
 cd proyecto_final_factufacil
-
-# 2. Entorno virtual
 python -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
-
-# 3. Dependencias
 pip install -r requirements.txt
-
-# 4. Variables de entorno
-cp .env.example .env
-# Editá .env y agregá ALIBABA_API_KEY o OPENAI_API_KEY
+cp .env.example .env               # completá ALIBABA_API_KEY o OPENAI_API_KEY
 ```
 
-### Ejecución
-
 ```bash
-# Arranque (dev, con reload)
 python run.py
-
-# Equivalente directo
-python entrypoints/api/main.py
-
-# Con uvicorn
-uvicorn entrypoints.api.main:app --reload --host 0.0.0.0 --port 8000
+# Equivalente: uvicorn entrypoints.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-El índice FAISS se construye automáticamente en el primer arranque (~30 s). **Swagger UI:** http://localhost:8000/docs
+El índice FAISS se construye solo en el primer arranque (~30 s).
+**Swagger UI:** http://localhost:8000/docs · `GET /health` reporta el modelo y si
+el co-piloto (`agent_available`) compiló.
 
-### Con Docker
+### Docker
 
 ```bash
-docker-compose up --build
+docker-compose up --build          # expone http://localhost:8000
 ```
-
-El servicio queda expuesto en `http://localhost:8000`.
 
 ---
 
-## 8. Uso de la API
+## 7. Uso de la API
 
-### Nuevo chat
+### Co-piloto ERP
+
+```bash
+# 1. Mensaje al co-piloto (las creds del tenant van por request)
+curl -X POST http://localhost:8000/agent/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+        "session_id": "demo-1",
+        "message": "registrá una nota de venta para el cliente X",
+        "context_module": "ventas",
+        "tenant_base_url": "https://midominio.facturadorpro7.com",
+        "tenant_token": "TOKEN_DEL_TENANT"
+      }'
+# → si el especialista invoca una escritura, responde:
+#   { "status": "awaiting_confirmation", "confirmation": { ... } }
+
+# 2. Confirmar (o rechazar) la escritura pendiente
+curl -X POST http://localhost:8000/agent/confirm \
+  -H "Content-Type: application/json" \
+  -d '{ "session_id": "demo-1", "approved": true }'
+```
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `POST` | `/agent/chat` | Mensaje al co-piloto; puede pausar pidiendo confirmación |
+| `POST` | `/agent/confirm` | Aprueba/rechaza una escritura pendiente y reanuda |
+| `GET` | `/agent/session/{id}` | Lee el estado del thread sin mutarlo |
+
+### Chatbot de preventa (RAG)
 
 ```bash
 curl -X POST http://localhost:8000/chat \
@@ -202,64 +246,49 @@ curl -X POST http://localhost:8000/chat \
   -d '{"message": "¿Cuánto cuesta el plan PRO?"}'
 ```
 
-### Continuar conversación (mantener contexto)
-
-```bash
-curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "¿Y qué diferencia tiene con el Básico?", "session_id": "TU_SESSION_ID"}'
-```
-
-### Respuesta
-
-```json
-{
-  "session_id": "f3a1b2c4-...",
-  "answer": "El plan PRO cuesta S/.95 al mes (S/.950 al año) y es el más popular...",
-  "sources": [
-    { "category": "precios", "topic": "planes", "excerpt": "Plan PRO — S/.95 por mes..." }
-  ],
-  "message_count": 1
-}
-```
-
-### Otros endpoints
-
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| `GET` | `/health` | Estado del servicio |
+| `GET` | `/health` | Estado del servicio + disponibilidad del co-piloto |
+| `POST` | `/chat` | Pregunta al chatbot de preventa (RAG) |
+| `GET` / `DELETE` | `/session/{id}` | Info / limpieza de una sesión de preventa |
 | `GET` | `/rag/stats` | Info del índice FAISS |
-| `POST` | `/rag/reindex` | Reconstruir índice RAG |
-| `GET` | `/session/{id}` | Info de una sesión |
-| `DELETE` | `/session/{id}` | Limpiar historial de sesión |
+| `POST` | `/rag/reindex` | Reconstruir el índice RAG |
 
 ---
 
-## 9. Tests
+## 8. Tests
 
 ```bash
 # Con el servidor corriendo en :8000
 python test_chatbot.py
 ```
 
-Cubre 5 grupos: información general, planes y precios, funcionalidades, memoria conversacional y manejo de alucinaciones.
+Cubre el canal de preventa: información general, planes y precios,
+funcionalidades, memoria conversacional y manejo de alucinaciones. La
+verificación del grafo del co-piloto vive en `scripts/` (smoke tests por fase).
 
 ---
 
-## 10. Manejo de Alucinaciones y Seguridad
+## 9. Origen académico — chatbot de preventa (RAG)
 
-- El prompt instruye al LLM a responder **únicamente** con información del contexto recuperado por RAG.
-- Si el contexto no contiene la respuesta, el modelo indica contactar a `ventas@factufacil.pe` o `+51 964 979 320` en lugar de inventar.
-- Las fuentes usadas (`sources`) se devuelven en cada respuesta para trazabilidad completa.
-- CORS configurado con orígenes explícitos (`CORS_ORIGINS` en `.env`) — no `allow_origins=["*"]`.
+Este repo arrancó como el **proyecto final** del diploma. Ese entregable hoy es
+el canal `POST /chat` y se mantiene completo:
 
----
+- **LLM + RAG** sobre **13 documentos estructurados** de FactuFácil.
+- **Embeddings multilingüe** locales (`paraphrase-multilingual-MiniLM-L12-v2`),
+  `RecursiveCharacterTextSplitter` (chunk 500 / overlap 50), búsqueda semántica
+  con **FAISS** local — misma calidad que OpenSearch, sin servidor.
+- **Manejo de alucinaciones:** el prompt ancla cada respuesta al contexto
+  recuperado; si no alcanza, deriva a `ventas@factufacil.pe` /
+  `+51 964 979 320` en vez de inventar. Las `sources` se devuelven en cada
+  respuesta para trazabilidad.
+- **CORS** con orígenes explícitos (`CORS_ORIGINS`), no `["*"]`.
 
-## 11. Entregables
+**Entregables del trabajo final:**
 
 - [x] Repositorio GitHub con código fuente completo
-- [x] README con pasos de instalación y ejecución (este documento)
-- [x] Diagrama de arquitectura (sección 5)
+- [x] README con instalación y ejecución (este documento)
+- [x] Diagrama de arquitectura ([sección 4](#4-arquitectura-hexagonal))
 - [x] Documentación técnica extendida (`DETALLE.md`)
 - [x] Tests funcionales (`test_chatbot.py`)
 - [x] Dockerfile y `docker-compose.yml`
@@ -268,16 +297,19 @@ Cubre 5 grupos: información general, planes y precios, funcionalidades, memoria
 
 ---
 
-## 12. Conclusiones y Mejoras Futuras
+## 10. Roadmap y decisiones
 
-**Conclusiones:**
-- LangChain + FAISS local es suficiente para un chatbot de soporte/ventas con calidad de búsqueda semántica real.
-- La arquitectura hexagonal hace que cambiar de FAISS a OpenSearch, o de Qwen a GPT, sea un swap de una línea en el Composition Root.
-- Los embeddings multilingüe locales (`paraphrase-multilingual-MiniLM-L12-v2`) eliminan costos de API y funcionan bien en español.
+El trabajo pendiente se trackea en el **GitHub Project board**
+[*chatbot_Factufacil Board*](https://github.com/users/miguel-anay/projects/11).
+Hoy ahí viven, entre otros:
 
-**Mejoras futuras:**
-- Reemplazar FAISS por OpenSearch para búsqueda distribuida en producción.
-- Agregar reranking semántico (cross-encoder) para mayor precisión RAG.
-- Implementar streaming de respuestas (`StreamingResponse`) para UX en tiempo real.
-- Integración con Telegram o WhatsApp como canal de atención.
-- Panel de administración para actualizar la base de conocimiento sin tocar código.
+- `feat: control de la UI del ERP desde el co-piloto (canal ui_actions)` →
+  diseño en [`docs/plan-control-ui-erp.md`](docs/plan-control-ui-erp.md).
+- `feat: migrar checkpointer del grafo de InMemorySaver a Postgres` — hoy el
+  estado del grafo vive en memoria del proceso; una confirmación pendiente no
+  sobrevive a un reinicio.
+- `decision: NO vectorizar el catálogo de productos (por ahora)`.
+
+**Mejoras futuras (canal preventa):** reranking semántico (cross-encoder),
+streaming de respuestas (`StreamingResponse`), integración con Telegram/WhatsApp,
+panel para actualizar la base de conocimiento sin tocar código.
