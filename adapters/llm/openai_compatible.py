@@ -21,6 +21,7 @@ class OpenAICompatibleAdapter(LLMPort):
             "model": Config.LLM_MODEL,
             "api_key": Config.LLM_API_KEY,
             "temperature": Config.LLM_TEMPERATURE,
+            "max_tokens": Config.MAX_TOKENS,
         }
         if Config.LLM_BASE_URL:
             kwargs["base_url"] = Config.LLM_BASE_URL

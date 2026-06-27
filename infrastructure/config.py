@@ -31,11 +31,14 @@ class Config:
     # RAG — chunking y recuperación
     CHUNK_SIZE: int = int(os.getenv("CHUNK_SIZE", "500"))
     CHUNK_OVERLAP: int = int(os.getenv("CHUNK_OVERLAP", "50"))
-    TOP_K: int = int(os.getenv("TOP_K", "4"))
+    TOP_K: int = int(os.getenv("TOP_K", "2"))
     FAISS_INDEX_PATH: str = os.getenv("FAISS_INDEX_PATH", "data/faiss_index")
 
     # Memoria conversacional (últimos N turnos)
-    MEMORY_K: int = int(os.getenv("MEMORY_K", "8"))
+    MEMORY_K: int = int(os.getenv("MEMORY_K", "4"))
+
+    # Límite de tokens en la respuesta del LLM (presales)
+    MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "300"))
 
     # Servidor
     HOST: str = os.getenv("HOST", "0.0.0.0")
