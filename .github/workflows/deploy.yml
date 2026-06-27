@@ -78,6 +78,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Compute lowercase image owner
+        # GHCR exige el namespace en minúsculas; el owner ahora es la org.
+        # Dinámico (repository_owner en lowercase) → no se vuelve a romper si
+        # el repo se mueve de owner otra vez.
+        run: echo "IMAGE_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -87,12 +93,12 @@ jobs:
 
       - name: Build and push image
         env:
-          IMAGE: ghcr.io/miguel-anay/factufacil-chatbot:${{ github.sha }}
+          IMAGE: ghcr.io/${{ env.IMAGE_OWNER }}/factufacil-chatbot:${{ github.sha }}
         run: |
           docker build -t $IMAGE .
           docker push $IMAGE
-          docker tag $IMAGE ghcr.io/miguel-anay/factufacil-chatbot:latest
-          docker push ghcr.io/miguel-anay/factufacil-chatbot:latest
+          docker tag $IMAGE ghcr.io/$IMAGE_OWNER/factufacil-chatbot:latest
+          docker push ghcr.io/$IMAGE_OWNER/factufacil-chatbot:latest
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -102,7 +108,7 @@ jobs:
       - name: Deploy via SSM
         env:
           INSTANCE_ID: i-06ed766af4b831cf0
-          IMAGE: ghcr.io/miguel-anay/factufacil-chatbot:${{ github.sha }}
+          IMAGE: ghcr.io/${{ env.IMAGE_OWNER }}/factufacil-chatbot:${{ github.sha }}
         run: |
           COMPOSE_B64=$(base64 -w 0 docker-compose.yml)
 
