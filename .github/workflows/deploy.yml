@@ -120,7 +120,7 @@ jobs:
           mkdir -p \$DEPLOY_DIR
 
           GHCR_TOKEN=\$(aws ssm get-parameter --name /factufacil/chatbot/ghcr_token --with-decryption --query Parameter.Value --output text --region us-east-1)
-          echo "\$GHCR_TOKEN" | docker login ghcr.io -u miguel-anay --password-stdin
+          echo "\$GHCR_TOKEN" | docker login ghcr.io -u $IMAGE_OWNER --password-stdin
 
           docker pull $IMAGE
 
