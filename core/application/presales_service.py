@@ -10,6 +10,8 @@ from typing import Optional
 from core.domain import BotPersona, ChatMessage, ChatResponse
 from core.ports import LLMPort, MemoryPort, RAGPort
 
+GUARDRAIL_RESPONSE = "Solo puedo ayudarte con consultas sobre FactuFácil y FacturadorPro7."
+
 PROMPT_TEMPLATE = """\
 Sos el asistente virtual de {name}.
 
@@ -20,7 +22,8 @@ Reglas:
 2. Usá ÚNICAMENTE la información del contexto proporcionado.
 3. Si no tenés información suficiente, indicá contactar a {email} o al {phone}.
 4. NUNCA inventes precios, características ni datos fuera del contexto.
-5. Sé conciso pero completo.
+5. Sé conciso pero completo. Máximo 3 oraciones salvo que el usuario pida más detalle.
+6. Si la pregunta NO está relacionada con FactuFácil, FacturadorPro7, facturación electrónica o SUNAT, respondé ÚNICAMENTE: "Solo puedo ayudarte con consultas sobre FactuFácil y FacturadorPro7."
 
 --- CONTEXTO ---
 {context}
@@ -59,9 +62,19 @@ class ChatbotService:
         if not session_id:
             session_id = str(uuid.uuid4())
 
-        # 1. Recuperar contexto semántico
+        # 1. Recuperar contexto semántico — filtra por score de relevancia.
+        # Si FAISS no encuentra ningún doc por debajo del umbral, la query
+        # está fuera del dominio: devolvemos la respuesta fija sin gastar tokens de LLM.
         docs = self._rag.retrieve(message)
-        context = "\n\n---\n\n".join(d.content for d in docs) if docs else "Sin contexto disponible."
+        if not docs:
+            return ChatResponse(
+                session_id=session_id,
+                answer=GUARDRAIL_RESPONSE,
+                sources=[],
+                message_count=self._memory.get_session_info(session_id).get("message_count", 0),
+            )
+
+        context = "\n\n---\n\n".join(d.content for d in docs)
 
         # 2. Recuperar historial de sesión
         history = self._memory.get_history(session_id)

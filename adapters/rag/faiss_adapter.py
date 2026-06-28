@@ -31,14 +31,15 @@ class FAISSAdapter(RAGPort):
     def retrieve(self, query: str, k: int = None) -> List[RetrievedDocument]:
         if not self._store:
             return []
-        docs = self._store.similarity_search(query, k=k or Config.TOP_K)
+        results = self._store.similarity_search_with_score(query, k=k or Config.TOP_K)
         return [
             RetrievedDocument(
                 content=d.page_content,
                 category=d.metadata.get("category", ""),
                 topic=d.metadata.get("topic", ""),
             )
-            for d in docs
+            for d, score in results
+            if score <= Config.OFF_TOPIC_THRESHOLD
         ]
 
     def reindex(self) -> None:
